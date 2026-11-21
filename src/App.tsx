@@ -266,7 +266,7 @@ function Builder() {
   const blueprint = generateBlueprint(steps, blueprintTitle, landingPageType, customLandingUrl, phpVersion, wpVersion);
 
   return (
-    <div className="min-h-screen relative" style={{ background: 'var(--bg-app)' }}>
+    <div className="builder-shell relative">
       <Header
         blueprint={blueprint}
         title={blueprintTitle}
@@ -284,7 +284,7 @@ function Builder() {
         onToggleTheme={() => setIsDark(d => !d)}
       />
       
-      <div className="flex flex-col lg:flex-row" style={{ minHeight: 'calc(100vh - 56px - 41px)' }}>
+      <main className="builder-workspace">
         <Sidebar
           onAddStep={addStep}
           blueprintTitle={blueprintTitle}
@@ -308,7 +308,7 @@ function Builder() {
           onRemoveStep={removeStep}
           onReorderSteps={setSteps}
         />
-      </div>
+      </main>
       
       <input
         ref={fileInputRef}

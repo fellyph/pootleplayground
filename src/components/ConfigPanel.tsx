@@ -26,10 +26,7 @@ interface ConfigPanelProps {
 export function ConfigPanel({ selectedStep, onUpdateStep, allSteps }: ConfigPanelProps) {
   if (!selectedStep) {
     return (
-      <div
-        className="hidden lg:flex flex-1 items-center justify-center"
-        style={{ background: 'var(--bg-app)' }}
-      >
+      <section className="builder-panel builder-config-empty">
         <div style={{ textAlign: 'center' }}>
           <div style={{
             width: 56, height: 56,
@@ -46,7 +43,7 @@ export function ConfigPanel({ selectedStep, onUpdateStep, allSteps }: ConfigPane
             Choose a step from the right panel to configure its settings.
           </p>
         </div>
-      </div>
+      </section>
     );
   }
 
@@ -77,11 +74,8 @@ export function ConfigPanel({ selectedStep, onUpdateStep, allSteps }: ConfigPane
   };
 
   return (
-    <div
-      className="flex-1 overflow-hidden"
-      style={{ background: 'var(--bg-surface)', borderLeft: '1px solid var(--border)' }}
-    >
+    <section className="builder-panel builder-config">
       {renderForm()}
-    </div>
+    </section>
   );
 }

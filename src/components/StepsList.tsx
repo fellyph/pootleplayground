@@ -77,16 +77,10 @@ export function StepsList({ steps, selectedStep, onSelectStep, onRemoveStep, onR
   };
 
   return (
-    <div
-      style={{
-        width: 280, minWidth: 280,
-        background: 'var(--bg-surface)',
-        borderLeft: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column',
-        minHeight: 'calc(100vh - 56px)',
-        fontFamily: WP_FONT,
-      }}
-      className="lg:flex flex-col hidden"
+    <aside
+      aria-label="Blueprint steps"
+      className="builder-panel builder-steps"
+      style={{ fontFamily: WP_FONT }}
     >
       {/* Header */}
       <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid var(--border)' }}>
@@ -211,6 +205,6 @@ export function StepsList({ steps, selectedStep, onSelectStep, onRemoveStep, onR
           </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 }

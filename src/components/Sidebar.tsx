@@ -59,16 +59,10 @@ const WP_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-S
 export function Sidebar({ onAddStep, blueprintTitle, onTitleChange, phpVersion, onPhpVersionChange, wpVersion, onWpVersionChange }: SidebarProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   return (
-    <div
-      style={{
-        width: 280, minWidth: 280,
-        background: 'var(--bg-surface)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column',
-        minHeight: 'calc(100vh - 56px)',
-        fontFamily: WP_FONT,
-      }}
-      className="lg:flex flex-col hidden"
+    <aside
+      aria-label="Blueprint settings and step catalog"
+      className="builder-panel builder-sidebar"
+      style={{ fontFamily: WP_FONT }}
     >
       {/* Site title */}
       <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--border-light)' }}>
@@ -203,6 +197,6 @@ export function Sidebar({ onAddStep, blueprintTitle, onTitleChange, phpVersion, 
           )}
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

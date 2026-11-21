@@ -116,3 +116,97 @@ html {
 .blueprint-template-card::before {
   display: none;
 }
+
+/* Responsive Blueprint Builder shell */
+.builder-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-block-size: 100dvh;
+  background: var(--bg-app);
+}
+
+.builder-header-inner {
+  display: flex;
+  align-items: safe center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  min-block-size: 56px;
+  padding: 6px 16px;
+  gap: 8px;
+}
+
+.builder-toolbar {
+  display: flex;
+  align-items: safe center;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.builder-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-block-size: 0;
+}
+
+.builder-panel {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+.builder-sidebar {
+  background: var(--bg-surface);
+  border-block-end: 1px solid var(--border);
+}
+
+.builder-config {
+  background: var(--bg-surface);
+}
+
+.builder-config-empty {
+  background: var(--bg-app);
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+}
+
+.builder-steps {
+  background: var(--bg-surface);
+  border-block-start: 1px solid var(--border);
+}
+
+@media (min-width: 768px) {
+  .builder-shell {
+    block-size: 100dvh;
+  }
+
+  .builder-workspace {
+    grid-template-columns: minmax(200px, 230px) minmax(0, 1fr) minmax(200px, 230px);
+    overflow: clip;
+  }
+
+  .builder-panel {
+    block-size: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .builder-sidebar {
+    border-block-end: 0;
+    border-inline-end: 1px solid var(--border);
+  }
+
+  .builder-steps {
+    border-block-start: 0;
+    border-inline-start: 1px solid var(--border);
+  }
+}
+
+@media (min-width: 1024px) {
+  .builder-workspace {
+    grid-template-columns: 280px minmax(0, 1fr) 280px;
+  }
+}

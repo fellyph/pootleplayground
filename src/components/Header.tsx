@@ -123,10 +123,7 @@ export function Header({
       background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)',
       position: 'sticky', top: 0, zIndex: 50, fontFamily: WP_FONT,
     }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px', height: 56, gap: 8,
-      }}>
+      <div className="builder-header-inner">
 
         {/* ── Logo ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
@@ -148,7 +145,7 @@ export function Header({
         </div>
 
         {/* ── Toolbar ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+        <div className="builder-toolbar">
           {divider}
 
           <button onClick={onReset} disabled={stepCount === 0} title="Reset blueprint" style={iconBtn(stepCount > 0)}
