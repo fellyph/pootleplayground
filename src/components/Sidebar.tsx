@@ -10,6 +10,7 @@ interface SidebarProps {
   onPhpVersionChange: (v: string) => void;
   wpVersion: string;
   onWpVersionChange: (v: string) => void;
+  mobileHidden?: boolean;
 }
 
 const PHP_VERSIONS = ['7.4', '8.0', '8.1', '8.2', '8.3'];
@@ -56,37 +57,47 @@ const STEP_LABELS = {
 
 const WP_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif';
 
-export function Sidebar({ onAddStep, blueprintTitle, onTitleChange, phpVersion, onPhpVersionChange, wpVersion, onWpVersionChange }: SidebarProps) {
+export function Sidebar({
+  onAddStep,
+  blueprintTitle,
+  onTitleChange,
+  phpVersion,
+  onPhpVersionChange,
+  wpVersion,
+  onWpVersionChange,
+  mobileHidden = false,
+}: SidebarProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   return (
     <aside
       aria-label="Blueprint settings and step catalog"
-      className="builder-panel builder-sidebar"
+      className={`builder-panel builder-sidebar${mobileHidden ? ' builder-panel--mobile-hidden' : ''}`}
       style={{ fontFamily: WP_FONT }}
     >
       {/* Site title */}
       <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--border-light)' }}>
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+        <label
+          htmlFor="site-title-input"
+          style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}
+        >
           Site Title
         </label>
         <input
+          id="site-title-input"
           type="text"
           value={blueprintTitle}
           onChange={e => onTitleChange(e.target.value)}
           placeholder="My WordPress Site"
+          className="blueprint-input"
           style={{
             width: '100%', padding: '7px 10px', fontSize: 13,
-            border: '1px solid var(--border-input)', borderRadius: 2,
-            color: 'var(--text-primary)', background: 'var(--bg-surface)', outline: 'none',
             boxSizing: 'border-box', fontFamily: WP_FONT,
           }}
-          onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 1px var(--accent)'; }}
-          onBlur={e => { e.target.style.borderColor = 'var(--border-input)'; e.target.style.boxShadow = 'none'; }}
         />
       </div>
 
       {/* Step categories */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+      <div className="builder-scroll" style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
         {STEP_CATEGORIES.map(category => (
           <div key={category.name} style={{ marginBottom: 4 }}>
             <div style={{
@@ -101,18 +112,12 @@ export function Sidebar({ onAddStep, blueprintTitle, onTitleChange, phpVersion, 
               return (
                 <button
                   key={stepType}
+                  type="button"
                   onClick={() => onAddStep(stepType)}
-                  style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '8px 16px', border: 'none', background: 'transparent',
-                    cursor: 'pointer', textAlign: 'left', fontSize: 13,
-                    color: 'var(--text-primary)', fontFamily: WP_FONT,
-                    transition: 'background 0.1s',
-                  }}
-                  onMouseOver={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                  onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                  className="builder-step-btn"
+                  style={{ fontFamily: WP_FONT }}
                 >
-                  <Icon size={15} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                  <Icon size={15} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} aria-hidden="true" />
                   <span>{STEP_LABELS[stepType]}</span>
                 </button>
               );
@@ -123,39 +128,44 @@ export function Sidebar({ onAddStep, blueprintTitle, onTitleChange, phpVersion, 
         {/* Advanced section */}
         <div style={{ borderTop: '1px solid var(--border-light)', marginTop: 4 }}>
           <button
+            type="button"
+            aria-expanded={advancedOpen}
+            aria-controls="builder-advanced-settings"
             onClick={() => setAdvancedOpen(o => !o)}
+            className="builder-step-btn"
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '10px 16px 4px', border: 'none', background: 'transparent',
-              cursor: 'pointer', fontFamily: WP_FONT,
+              justifyContent: 'space-between',
+              padding: '10px 16px',
+              fontFamily: WP_FONT,
             }}
           >
             <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Advanced
             </span>
             {advancedOpen
-              ? <ChevronDown size={13} style={{ color: 'var(--text-tertiary)' }} />
-              : <ChevronRight size={13} style={{ color: 'var(--text-tertiary)' }} />}
+              ? <ChevronDown size={13} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+              : <ChevronRight size={13} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />}
           </button>
 
           {advancedOpen && (
-            <div style={{ padding: '8px 16px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div id="builder-advanced-settings" style={{ padding: '8px 16px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {/* WordPress version */}
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                <label
+                  htmlFor="wp-version-select"
+                  style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}
+                >
                   WordPress Version
                 </label>
                 <select
+                  id="wp-version-select"
                   value={wpVersion}
                   onChange={e => onWpVersionChange(e.target.value)}
+                  className="blueprint-input"
                   style={{
                     width: '100%', padding: '6px 8px', fontSize: 12,
-                    border: '1px solid var(--border-input)', borderRadius: 2,
-                    color: 'var(--text-primary)', background: 'var(--bg-surface)', outline: 'none',
                     fontFamily: WP_FONT, cursor: 'pointer',
                   }}
-                  onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 1px var(--accent)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'var(--border-input)'; e.target.style.boxShadow = 'none'; }}
                 >
                   <option value="latest">Latest</option>
                   <optgroup label="WordPress 7">
@@ -173,20 +183,21 @@ export function Sidebar({ onAddStep, blueprintTitle, onTitleChange, phpVersion, 
 
               {/* PHP version */}
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                <label
+                  htmlFor="php-version-select"
+                  style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}
+                >
                   PHP Version
                 </label>
                 <select
+                  id="php-version-select"
                   value={phpVersion}
                   onChange={e => onPhpVersionChange(e.target.value)}
+                  className="blueprint-input"
                   style={{
                     width: '100%', padding: '6px 8px', fontSize: 12,
-                    border: '1px solid var(--border-input)', borderRadius: 2,
-                    color: 'var(--text-primary)', background: 'var(--bg-surface)', outline: 'none',
                     fontFamily: WP_FONT, cursor: 'pointer',
                   }}
-                  onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 1px var(--accent)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'var(--border-input)'; e.target.style.boxShadow = 'none'; }}
                 >
                   {PHP_VERSIONS.map(v => (
                     <option key={v} value={v}>{v}</option>

@@ -8,6 +8,7 @@ interface StepsListProps {
   onSelectStep: (step: Step) => void;
   onRemoveStep: (stepId: string) => void;
   onReorderSteps: (steps: Step[]) => void;
+  mobileHidden?: boolean;
 }
 
 const STEP_ICONS: Record<string, React.ElementType> = {
@@ -41,7 +42,14 @@ const STEP_ACCENT: Record<string, string> = {
 
 const WP_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif';
 
-export function StepsList({ steps, selectedStep, onSelectStep, onRemoveStep, onReorderSteps }: StepsListProps) {
+export function StepsList({
+  steps,
+  selectedStep,
+  onSelectStep,
+  onRemoveStep,
+  onReorderSteps,
+  mobileHidden = false,
+}: StepsListProps) {
   const dragIndex = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -79,18 +87,18 @@ export function StepsList({ steps, selectedStep, onSelectStep, onRemoveStep, onR
   return (
     <aside
       aria-label="Blueprint steps"
-      className="builder-panel builder-steps"
+      className={`builder-panel builder-steps${mobileHidden ? ' builder-panel--mobile-hidden' : ''}`}
       style={{ fontFamily: WP_FONT }}
     >
       {/* Header */}
       <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Blueprint Steps</span>
+          <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Blueprint Steps</h2>
           {steps.length > 0 && (
             <span style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 20, height: 20, background: 'var(--accent)', color: '#fff',
-              borderRadius: '50%', fontSize: 11, fontWeight: 700,
+              minWidth: 20, height: 20, paddingInline: 5, background: 'var(--accent)', color: '#fff',
+              borderRadius: 999, fontSize: 11, fontWeight: 700,
             }}>
               {steps.length}
             </span>
@@ -102,7 +110,7 @@ export function StepsList({ steps, selectedStep, onSelectStep, onRemoveStep, onR
       </div>
 
       {/* Steps */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+      <div className="builder-scroll" style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
         {steps.length === 0 ? (
           <div style={{ padding: '40px 20px', textAlign: 'center' }}>
             <div style={{
@@ -111,49 +119,45 @@ export function StepsList({ steps, selectedStep, onSelectStep, onRemoveStep, onR
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 12px',
             }}>
-              <Settings style={{ width: 20, height: 20, color: 'var(--text-muted)' }} />
+              <Settings style={{ width: 20, height: 20, color: 'var(--text-muted)' }} aria-hidden="true" />
             </div>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>No steps yet</p>
-            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>Add steps from the left panel</p>
+            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>Add steps from the catalog to build your blueprint</p>
           </div>
         ) : (
-          <div>
+          <ol role="list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {steps.map((step, index) => {
               const Icon = STEP_ICONS[step.type] || Settings;
               const isSelected = selectedStep?.id === step.id;
               const accent = STEP_ACCENT[step.type] || 'var(--text-secondary)';
               const isDragOver = dragOverIndex === index;
+              const label = STEP_LABELS[step.type] || step.type;
+              const subtitle = step.data?.postTitle || step.data?.option;
 
               return (
-                <div
+                <li
                   key={step.id}
                   draggable
                   onDragStart={e => handleDragStart(e, index)}
                   onDragOver={e => handleDragOver(e, index)}
                   onDrop={e => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
-                  onClick={() => onSelectStep(step)}
+                  className={`builder-step-row${isSelected ? ' builder-step-row--selected' : ''}`}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '9px 14px 9px 0',
-                    borderLeft: `3px solid ${isSelected ? accent : 'transparent'}`,
-                    background: isDragOver
-                      ? 'var(--accent-bg)'
-                      : isSelected ? 'var(--accent-bg)' : 'transparent',
-                    cursor: 'pointer', transition: 'background 0.1s',
-                    borderBottom: isDragOver
+                    borderInlineStartColor: isSelected ? accent : 'transparent',
+                    background: isDragOver ? 'var(--accent-bg)' : undefined,
+                    borderBlockEnd: isDragOver
                       ? '2px solid var(--accent)'
                       : '1px solid var(--border-light)',
                     opacity: dragIndex.current === index ? 0.4 : 1,
                   }}
-                  onMouseOver={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover)'; }}
-                  onMouseOut={e => { if (!isSelected && dragOverIndex !== index) e.currentTarget.style.background = 'transparent'; }}
                 >
                   {/* Drag handle */}
                   <div
+                    aria-hidden="true"
                     style={{
-                      paddingLeft: 6, cursor: 'grab',
-                      color: 'var(--border-muted)', display: 'flex', alignItems: 'center',
+                      paddingInlineStart: 6, cursor: 'grab',
+                      color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
                       flexShrink: 0,
                     }}
                     onMouseDown={e => e.stopPropagation()}
@@ -161,48 +165,50 @@ export function StepsList({ steps, selectedStep, onSelectStep, onRemoveStep, onR
                     <GripVertical size={13} />
                   </div>
 
-                  {/* Step number */}
-                  <div style={{
-                    width: 18, minWidth: 18, textAlign: 'center',
-                    fontSize: 11, fontWeight: 600,
-                    color: isSelected ? accent : 'var(--text-muted)',
-                  }}>
-                    {index + 1}
-                  </div>
+                  {/* Selectable step button */}
+                  <button
+                    type="button"
+                    onClick={() => onSelectStep(step)}
+                    aria-current={isSelected ? 'step' : undefined}
+                    className="builder-step-select"
+                    style={{ fontFamily: WP_FONT }}
+                  >
+                    <span style={{
+                      width: 18, minWidth: 18, textAlign: 'center',
+                      fontSize: 11, fontWeight: 600,
+                      color: isSelected ? accent : 'var(--text-muted)',
+                    }}>
+                      {index + 1}
+                    </span>
 
-                  {/* Icon */}
-                  <Icon size={14} style={{ color: isSelected ? accent : 'var(--text-secondary)', flexShrink: 0 }} />
+                    <Icon size={14} style={{ color: isSelected ? accent : 'var(--text-secondary)', flexShrink: 0 }} aria-hidden="true" />
 
-                  {/* Label */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: isSelected ? 600 : 400, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {STEP_LABELS[step.type]}
-                    </div>
-                    {(step.data?.postTitle || step.data?.option) && (
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {step.data.postTitle || step.data.option}
-                      </div>
-                    )}
-                  </div>
+                    <span style={{ flex: 1, minWidth: 0, display: 'block' }}>
+                      <span style={{ display: 'block', fontSize: 13, fontWeight: isSelected ? 600 : 400, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {label}
+                      </span>
+                      {subtitle && (
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {subtitle}
+                        </span>
+                      )}
+                    </span>
+                  </button>
 
                   {/* Delete */}
                   <button
-                    onClick={e => { e.stopPropagation(); onRemoveStep(step.id); }}
-                    style={{
-                      width: 24, height: 24, border: 'none', background: 'transparent',
-                      borderRadius: 2, cursor: 'pointer', color: 'var(--border-muted)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'color 0.1s', flexShrink: 0, padding: 0,
-                    }}
-                    onMouseOver={e => (e.currentTarget.style.color = 'var(--error)')}
-                    onMouseOut={e => (e.currentTarget.style.color = 'var(--border-muted)')}
+                    type="button"
+                    onClick={() => onRemoveStep(step.id)}
+                    aria-label={`Remove step ${index + 1}: ${label}`}
+                    title={`Remove ${label}`}
+                    className="builder-step-delete"
                   >
-                    <X size={12} />
+                    <X size={13} aria-hidden="true" />
                   </button>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ol>
         )}
       </div>
     </aside>
