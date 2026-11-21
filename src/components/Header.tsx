@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Play, FileText, Zap, Download, Upload, Grid3x3, Save, RotateCcw, Sparkles, Share2, Link2, Loader2, Moon, Sun } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Play, Zap, Download, Upload, Grid3x3, Save, RotateCcw, Sparkles, Share2, Link2, Loader2, Moon, Sun } from 'lucide-react';
 import { Blueprint } from '../types/blueprint';
 
 interface HeaderProps {
@@ -38,6 +38,50 @@ export function Header({
   onToggleTheme,
 }: HeaderProps) {
   const [isLaunching, setIsLaunching] = useState(false);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const bar = toolbarRef.current;
+    if (!bar || 'focusGroup' in HTMLElement.prototype) return;
+
+    const getItems = () => Array.from(bar.querySelectorAll<HTMLButtonElement>('button'));
+    const items = getItems();
+    items.forEach((b, i) => { b.tabIndex = i === 0 ? 0 : -1; });
+
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLButtonElement;
+      const currentItems = getItems();
+      if (currentItems.includes(target)) {
+        currentItems.forEach(b => { b.tabIndex = b === target ? 0 : -1; });
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const currentItems = getItems();
+      const idx = currentItems.indexOf(document.activeElement as HTMLButtonElement);
+      if (idx === -1) return;
+
+      const rtl = getComputedStyle(bar).direction === 'rtl';
+      let nextIdx = -1;
+      if (e.key === 'ArrowRight') nextIdx = (idx + (rtl ? -1 : 1) + currentItems.length) % currentItems.length;
+      else if (e.key === 'ArrowLeft') nextIdx = (idx + (rtl ? 1 : -1) + currentItems.length) % currentItems.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = currentItems.length - 1;
+
+      if (nextIdx !== -1) {
+        e.preventDefault();
+        currentItems.forEach((b, i) => { b.tabIndex = i === nextIdx ? 0 : -1; });
+        currentItems[nextIdx]?.focus();
+      }
+    };
+
+    bar.addEventListener('focusin', onFocusIn);
+    bar.addEventListener('keydown', onKeyDown);
+    return () => {
+      bar.removeEventListener('focusin', onFocusIn);
+      bar.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onShowSharedPlaygrounds, onSharePlayground]);
 
   const unicodeSafeBase64Encode = (str: string): string => {
     const utf8Bytes = new TextEncoder().encode(str);
@@ -106,149 +150,163 @@ export function Header({
     URL.revokeObjectURL(url);
   };
 
-  const iconBtn = (active = true): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    width: 36, height: 36, border: 'none', background: 'transparent',
-    borderRadius: 2, cursor: active ? 'pointer' : 'not-allowed',
-    color: active ? 'var(--text-secondary)' : 'var(--text-muted)',
-    transition: 'background 0.12s', flexShrink: 0, padding: 0,
-  });
-
-  const divider = (
-    <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 4px', flexShrink: 0 }} />
-  );
+  const hasSteps = stepCount > 0;
 
   return (
-    <header style={{
-      background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)',
-      position: 'sticky', top: 0, zIndex: 50, fontFamily: WP_FONT,
-    }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px', height: 56, gap: 8,
-      }}>
+    <header className="builder-header" style={{ fontFamily: WP_FONT }}>
+      <div className="builder-header-inner">
 
         {/* ── Logo ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <div className="builder-brand">
           <div style={{
             width: 36, height: 36, background: 'var(--accent)', borderRadius: 6,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
-            <Zap style={{ width: 18, height: 18, color: '#fff' }} />
+            <Zap style={{ width: 18, height: 18, color: '#fff' }} aria-hidden="true" />
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+            <h1 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2, margin: 0 }}>
               Pootle Playground
-            </div>
+            </h1>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.2 }}>
               Blueprint Generator v1.6
             </div>
           </div>
-
         </div>
 
-        {/* ── Toolbar ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-          {divider}
+        {/* ── Toolbar + Primary Actions ── */}
+        <div className="builder-header-controls">
+          <div
+            ref={toolbarRef}
+            role="toolbar"
+            aria-label="Blueprint actions"
+            className="builder-toolbar"
+            {...({ focusgroup: 'toolbar wrap' } as React.HTMLAttributes<HTMLDivElement>)}
+          >
+            <span role="separator" aria-orientation="vertical" className="builder-toolbar-divider" />
 
-          <button onClick={onReset} disabled={stepCount === 0} title="Reset blueprint" style={iconBtn(stepCount > 0)}
-            onMouseOver={e => { if (stepCount > 0) e.currentTarget.style.background = 'var(--bg-hover)'; }}
-            onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>
-            <RotateCcw style={{ width: 15, height: 15 }} />
-          </button>
+            <div role="group" aria-label="Blueprint file" className="builder-toolbar-group">
+              <button
+                type="button"
+                onClick={() => { if (hasSteps) onReset(); }}
+                aria-disabled={!hasSteps}
+                aria-label="Reset blueprint"
+                title="Reset blueprint"
+                className="builder-icon-btn"
+              >
+                <RotateCcw style={{ width: 15, height: 15 }} aria-hidden="true" />
+              </button>
 
-          <button onClick={onShowGallery} title="Browse gallery" style={iconBtn()}
-            onMouseOver={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-            onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>
-            <Grid3x3 style={{ width: 15, height: 15 }} />
-          </button>
+              <button
+                type="button"
+                onClick={onShowGallery}
+                aria-label="Browse gallery"
+                title="Browse gallery"
+                className="builder-icon-btn"
+              >
+                <Grid3x3 style={{ width: 15, height: 15 }} aria-hidden="true" />
+              </button>
 
-          <button onClick={onImportBlueprint} title="Import blueprint JSON" style={iconBtn()}
-            onMouseOver={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-            onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>
-            <Download style={{ width: 15, height: 15 }} />
-          </button>
+              <button
+                type="button"
+                onClick={onImportBlueprint}
+                aria-label="Import blueprint JSON"
+                title="Import blueprint JSON"
+                className="builder-icon-btn"
+              >
+                <Download style={{ width: 15, height: 15 }} aria-hidden="true" />
+              </button>
 
-          <button onClick={handleDownload} disabled={stepCount === 0} title="Export blueprint JSON" style={iconBtn(stepCount > 0)}
-            onMouseOver={e => { if (stepCount > 0) e.currentTarget.style.background = 'var(--bg-hover)'; }}
-            onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>
-            <Upload style={{ width: 15, height: 15 }} />
-          </button>
+              <button
+                type="button"
+                onClick={() => { if (hasSteps) handleDownload(); }}
+                aria-disabled={!hasSteps}
+                aria-label="Export blueprint JSON"
+                title="Export blueprint JSON"
+                className="builder-icon-btn"
+              >
+                <Upload style={{ width: 15, height: 15 }} aria-hidden="true" />
+              </button>
+            </div>
 
-          <button
-            onClick={onShowAiGenerator || onOpenAiSidebar} title="Generate with AI"
-            style={{ ...iconBtn(), color: 'var(--accent)' }}
-            onMouseOver={e => (e.currentTarget.style.background = 'var(--accent-bg)')}
-            onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>
-            <Sparkles style={{ width: 15, height: 15 }} />
-          </button>
+            <div role="group" aria-label="AI and sharing" className="builder-toolbar-group">
+              <button
+                type="button"
+                onClick={onShowAiGenerator || onOpenAiSidebar}
+                aria-label="Generate with AI"
+                title="Generate with AI"
+                className="builder-icon-btn builder-icon-btn--accent"
+              >
+                <Sparkles style={{ width: 15, height: 15 }} aria-hidden="true" />
+              </button>
 
-          {onShowSharedPlaygrounds && (
-            <button onClick={onShowSharedPlaygrounds} title="My shared links" style={iconBtn()}
-              onMouseOver={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>
-              <Link2 style={{ width: 15, height: 15 }} />
+              {onShowSharedPlaygrounds && (
+                <button
+                  type="button"
+                  onClick={onShowSharedPlaygrounds}
+                  aria-label="My shared links"
+                  title="My shared links"
+                  className="builder-icon-btn"
+                >
+                  <Link2 style={{ width: 15, height: 15 }} aria-hidden="true" />
+                </button>
+              )}
+
+              {onSharePlayground && (
+                <button
+                  type="button"
+                  onClick={onSharePlayground}
+                  aria-label="Share this Playground"
+                  title="Share this Playground"
+                  className="builder-icon-btn"
+                >
+                  <Share2 style={{ width: 15, height: 15 }} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            <div role="group" aria-label="Appearance" className="builder-toolbar-group">
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                aria-label="Dark mode"
+                aria-pressed={isDark}
+                title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                className="builder-icon-btn"
+              >
+                {isDark
+                  ? <Sun style={{ width: 15, height: 15 }} aria-hidden="true" />
+                  : <Moon style={{ width: 15, height: 15 }} aria-hidden="true" />}
+              </button>
+            </div>
+          </div>
+
+          <span role="separator" aria-orientation="vertical" className="builder-toolbar-divider" />
+
+          <div className="builder-primary-actions">
+            <button
+              type="button"
+              onClick={onSaveBlueprint}
+              disabled={!hasSteps}
+              className="builder-pill-btn builder-pill-btn--secondary"
+              style={{ fontFamily: WP_FONT }}
+            >
+              <Save style={{ width: 12, height: 12 }} aria-hidden="true" />
+              Save
             </button>
-          )}
 
-          {onSharePlayground && (
-            <button onClick={onSharePlayground} title="Share this Playground" style={iconBtn()}
-              onMouseOver={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>
-              <Share2 style={{ width: 15, height: 15 }} />
+            <button
+              type="button"
+              onClick={handleLaunch}
+              disabled={isLaunching}
+              className="builder-pill-btn builder-pill-btn--primary"
+              style={{ fontFamily: WP_FONT }}
+            >
+              {isLaunching
+                ? <><Loader2 style={{ width: 13, height: 13 }} className="animate-spin" aria-hidden="true" /> Launching…</>
+                : <><Play style={{ width: 13, height: 13 }} aria-hidden="true" /> Launch</>}
             </button>
-          )}
-
-          {/* Dark mode toggle */}
-          <button
-            onClick={onToggleTheme}
-            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            style={iconBtn()}
-            onMouseOver={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-            onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>
-            {isDark
-              ? <Sun style={{ width: 15, height: 15 }} />
-              : <Moon style={{ width: 15, height: 15 }} />}
-          </button>
-
-          {divider}
-
-          {/* Save draft */}
-          <button
-            onClick={onSaveBlueprint} disabled={stepCount === 0}
-            style={{
-              padding: '6px 14px', fontSize: 13, fontWeight: 500,
-              background: 'var(--bg-surface)',
-              color: stepCount === 0 ? 'var(--text-muted)' : 'var(--accent)',
-              border: `1px solid ${stepCount === 0 ? 'var(--border)' : 'var(--accent)'}`,
-              borderRadius: 999, cursor: stepCount === 0 ? 'not-allowed' : 'pointer',
-              fontFamily: WP_FONT, display: 'flex', alignItems: 'center', gap: 5,
-              transition: 'background 0.12s', whiteSpace: 'nowrap', flexShrink: 0,
-            }}
-            onMouseOver={e => { if (stepCount > 0) e.currentTarget.style.background = 'var(--accent-bg)'; }}
-            onMouseOut={e => (e.currentTarget.style.background = 'var(--bg-surface)')}>
-            <Save style={{ width: 12, height: 12 }} />
-            Save
-          </button>
-
-          {/* Launch */}
-          <button
-            onClick={handleLaunch} disabled={isLaunching}
-            style={{
-              padding: '6px 16px', fontSize: 13, fontWeight: 500,
-              background: isLaunching ? 'var(--text-muted)' : 'var(--accent)',
-              color: '#fff', border: '1px solid transparent',
-              borderRadius: 999,
-              cursor: isLaunching ? 'not-allowed' : 'pointer',
-              fontFamily: WP_FONT, display: 'flex', alignItems: 'center', gap: 6,
-              transition: 'background 0.12s', whiteSpace: 'nowrap', flexShrink: 0,
-            }}
-            onMouseOver={e => { if (!isLaunching) e.currentTarget.style.background = 'var(--accent-hover)'; }}
-            onMouseOut={e => { if (!isLaunching) e.currentTarget.style.background = 'var(--accent)'; }}>
-            {isLaunching
-              ? <><Loader2 style={{ width: 13, height: 13 }} className="animate-spin" /> Launching…</>
-              : <><Play style={{ width: 13, height: 13 }} /> Launch</>}
-          </button>
+          </div>
         </div>
       </div>
     </header>

@@ -21,15 +21,13 @@ interface ConfigPanelProps {
   selectedStep: Step | null;
   onUpdateStep: (stepId: string, data: any) => void;
   allSteps: Step[];
+  mobileHidden?: boolean;
 }
 
-export function ConfigPanel({ selectedStep, onUpdateStep, allSteps }: ConfigPanelProps) {
+export function ConfigPanel({ selectedStep, onUpdateStep, allSteps, mobileHidden = false }: ConfigPanelProps) {
   if (!selectedStep) {
     return (
-      <div
-        className="hidden lg:flex flex-1 items-center justify-center"
-        style={{ background: 'var(--bg-app)' }}
-      >
+      <section className={`builder-panel builder-config-empty${mobileHidden ? ' builder-panel--mobile-hidden' : ''}`}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
             width: 56, height: 56,
@@ -37,16 +35,16 @@ export function ConfigPanel({ selectedStep, onUpdateStep, allSteps }: ConfigPane
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 16px',
           }}>
-            <Settings style={{ width: 22, height: 22, color: 'var(--text-muted)' }} />
+            <Settings style={{ width: 22, height: 22, color: 'var(--text-muted)' }} aria-hidden="true" />
           </div>
-          <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 6px' }}>
             Select a step to configure
-          </h3>
+          </h2>
           <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0, maxWidth: 280 }}>
-            Choose a step from the right panel to configure its settings.
+            Add a step or choose one from your blueprint steps to configure its settings.
           </p>
         </div>
-      </div>
+      </section>
     );
   }
 
@@ -77,11 +75,8 @@ export function ConfigPanel({ selectedStep, onUpdateStep, allSteps }: ConfigPane
   };
 
   return (
-    <div
-      className="flex-1 overflow-hidden"
-      style={{ background: 'var(--bg-surface)', borderLeft: '1px solid var(--border)' }}
-    >
+    <section className={`builder-panel builder-config${mobileHidden ? ' builder-panel--mobile-hidden' : ''}`}>
       {renderForm()}
-    </div>
+    </section>
   );
 }

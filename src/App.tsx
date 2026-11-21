@@ -51,18 +51,87 @@ const unicodeSafeBase64Encode = (str: string): string => {
   return btoa(binaryString);
 };
 
+type MobilePanelTab = 'catalog' | 'config' | 'steps';
+
+function getSystemDark(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+}
+
+function getInitialDark(): boolean {
+  try {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') return true;
+    if (saved === 'light') return false;
+  } catch {
+    // Ignore storage access failures
+  }
+  return getSystemDark();
+}
+
 function Builder() {
   const navigate = useNavigate();
   const [steps, setSteps] = useState<Step[]>([]);
   const [selectedStep, setSelectedStep] = useState<Step | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobilePanelTab>('catalog');
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showAiSidebar, setShowAiSidebar] = useState(false);
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
+  const [isDark, setIsDark] = useState<boolean>(getInitialDark);
+  const mobileTablistRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    const applyTheme = (dark: boolean, explicitScheme: 'light' | 'dark' | null) => {
+      document.documentElement.classList.toggle('dark', dark);
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]');
+      if (meta) {
+        meta.content = explicitScheme ?? 'light dark';
+      }
+    };
+
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem('theme');
+    } catch {
+      // Ignore storage errors
+    }
+    const explicit = saved === 'dark' || saved === 'light' ? saved : null;
+    applyTheme(isDark, explicit);
+
+    const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mediaQuery) return;
+    const handleSystemChange = (e: MediaQueryListEvent) => {
+      let currentSaved: string | null = null;
+      try {
+        currentSaved = localStorage.getItem('theme');
+      } catch {
+        // Ignore storage errors
+      }
+      if (!currentSaved) {
+        setIsDark(e.matches);
+      }
+    };
+    mediaQuery.addEventListener('change', handleSystemChange);
+    return () => mediaQuery.removeEventListener('change', handleSystemChange);
   }, [isDark]);
+
+  const handleToggleTheme = () => {
+    const nextDark = !isDark;
+    const systemDark = getSystemDark();
+    try {
+      if (nextDark === systemDark) {
+        localStorage.removeItem('theme');
+      } else {
+        localStorage.setItem('theme', nextDark ? 'dark' : 'light');
+      }
+    } catch {
+      // Theme still applies in memory even if persistence is blocked
+    }
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]');
+    if (meta) {
+      meta.content = nextDark === systemDark ? 'light dark' : (nextDark ? 'dark' : 'light');
+    }
+    document.documentElement.classList.toggle('dark', nextDark);
+    setIsDark(nextDark);
+  };
   const [blueprintTitle, setBlueprintTitle] = useState('My WordPress Site');
   const [landingPageType, setLandingPageType] = useState<'wp-admin' | 'front-page' | 'custom'>('wp-admin');
   const [customLandingUrl, setCustomLandingUrl] = useState('');
@@ -109,31 +178,53 @@ function Builder() {
 
   const addStep = (type: StepType) => {
     const newStep: Step = {
-      id: `${type}-${Date.now()}`,
+      id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       type,
       data: getDefaultStepData(type),
     };
-    setSteps([...steps, newStep]);
+    setSteps(prev => [...prev, newStep]);
     setSelectedStep(newStep);
+    setMobileTab('config');
   };
 
   const updateStep = (stepId: string, data: any) => {
-    console.log('Updating step:', stepId, 'with data:', data);
-    setSteps(steps.map(step => 
+    setSteps(prev => prev.map(step =>
       step.id === stepId ? { ...step, data } : step
     ));
-    // Update selected step if it's the one being updated
-    if (selectedStep?.id === stepId) {
-      setSelectedStep({ ...selectedStep, data });
-    }
+    setSelectedStep(prev => (prev?.id === stepId ? { ...prev, data } : prev));
   };
 
   const removeStep = (stepId: string) => {
-    const newSteps = steps.filter(step => step.id !== stepId);
-    setSteps(newSteps);
-    if (selectedStep?.id === stepId) {
-      setSelectedStep(newSteps.length > 0 ? newSteps[newSteps.length - 1] : null);
-    }
+    setSteps(prev => {
+      const newSteps = prev.filter(step => step.id !== stepId);
+      setSelectedStep(current => {
+        if (current?.id !== stepId) return current;
+        return newSteps.length > 0 ? newSteps[newSteps.length - 1] : null;
+      });
+      return newSteps;
+    });
+  };
+
+  const handleSelectStep = (step: Step) => {
+    setSelectedStep(step);
+    setMobileTab('config');
+  };
+
+  const handleMobileTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if ('focusGroup' in HTMLElement.prototype) return;
+    const tabs: MobilePanelTab[] = ['catalog', 'config', 'steps'];
+    const currentIndex = tabs.indexOf(mobileTab);
+    let nextIndex = -1;
+    if (e.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') nextIndex = 0;
+    else if (e.key === 'End') nextIndex = tabs.length - 1;
+    if (nextIndex === -1) return;
+    e.preventDefault();
+    const nextTab = tabs[nextIndex];
+    setMobileTab(nextTab);
+    const buttons = mobileTablistRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+    buttons?.[nextIndex]?.focus();
   };
 
 
@@ -266,7 +357,7 @@ function Builder() {
   const blueprint = generateBlueprint(steps, blueprintTitle, landingPageType, customLandingUrl, phpVersion, wpVersion);
 
   return (
-    <div className="min-h-screen relative" style={{ background: 'var(--bg-app)' }}>
+    <div className="builder-shell relative">
       <Header
         blueprint={blueprint}
         title={blueprintTitle}
@@ -281,10 +372,60 @@ function Builder() {
         onSharePlayground={() => setShowShareModal(true)}
         onShowSharedPlaygrounds={() => navigate('/shared')}
         isDark={isDark}
-        onToggleTheme={() => setIsDark(d => !d)}
+        onToggleTheme={handleToggleTheme}
       />
-      
-      <div className="flex flex-col lg:flex-row" style={{ minHeight: 'calc(100vh - 56px - 41px)' }}>
+
+      <div
+        ref={mobileTablistRef}
+        role="tablist"
+        aria-label="Builder panels"
+        className="builder-mobile-tabs"
+        onKeyDown={handleMobileTabKeyDown}
+        {...({ focusgroup: 'tablist nomemory' } as React.HTMLAttributes<HTMLDivElement>)}
+      >
+        <button
+          type="button"
+          role="tab"
+          id="tab-catalog"
+          aria-selected={mobileTab === 'catalog'}
+          tabIndex={mobileTab === 'catalog' ? 0 : -1}
+          className="builder-mobile-tab"
+          onClick={() => setMobileTab('catalog')}
+          {...(mobileTab === 'catalog' ? ({ focusgroupstart: '' } as React.ButtonHTMLAttributes<HTMLButtonElement>) : {})}
+        >
+          Add Steps
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="tab-config"
+          aria-selected={mobileTab === 'config'}
+          tabIndex={mobileTab === 'config' ? 0 : -1}
+          className="builder-mobile-tab"
+          onClick={() => setMobileTab('config')}
+          {...(mobileTab === 'config' ? ({ focusgroupstart: '' } as React.ButtonHTMLAttributes<HTMLButtonElement>) : {})}
+        >
+          Configure
+          {selectedStep && <span className="builder-mobile-tab-dot" aria-hidden="true" />}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="tab-steps"
+          aria-selected={mobileTab === 'steps'}
+          tabIndex={mobileTab === 'steps' ? 0 : -1}
+          className="builder-mobile-tab"
+          onClick={() => setMobileTab('steps')}
+          {...(mobileTab === 'steps' ? ({ focusgroupstart: '' } as React.ButtonHTMLAttributes<HTMLButtonElement>) : {})}
+        >
+          Steps
+          {steps.length > 0 && (
+            <span className="builder-mobile-tab-badge">{steps.length}</span>
+          )}
+        </button>
+      </div>
+
+      <main className="builder-workspace">
         <Sidebar
           onAddStep={addStep}
           blueprintTitle={blueprintTitle}
@@ -293,22 +434,25 @@ function Builder() {
           onPhpVersionChange={setPhpVersion}
           wpVersion={wpVersion}
           onWpVersionChange={setWpVersion}
+          mobileHidden={mobileTab !== 'catalog'}
         />
-        
-        <ConfigPanel 
+
+        <ConfigPanel
           selectedStep={selectedStep}
           onUpdateStep={updateStep}
           allSteps={steps}
+          mobileHidden={mobileTab !== 'config'}
         />
-        
+
         <StepsList
           steps={steps}
           selectedStep={selectedStep}
-          onSelectStep={setSelectedStep}
+          onSelectStep={handleSelectStep}
           onRemoveStep={removeStep}
           onReorderSteps={setSteps}
+          mobileHidden={mobileTab !== 'steps'}
         />
-      </div>
+      </main>
       
       <input
         ref={fileInputRef}

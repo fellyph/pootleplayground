@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      try {
+        var saved = localStorage.getItem('theme');
+        var meta = document.querySelector('meta[name="color-scheme"]');
+        if (saved === 'dark' || saved === 'light') {
+          if (meta) meta.content = saved;
+          document.documentElement.classList.toggle('dark', saved === 'dark');
+        } else {
+          if (meta) meta.content = 'light dark';
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.classList.toggle('dark', prefersDark);
+        }
+      } catch (e) {}
+    </script>
     <title>Pootle Playground - WordPress Blueprint Configurator</title>
   </head>
   <body>
